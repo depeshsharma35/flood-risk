@@ -1,29 +1,50 @@
+import { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Card } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 
 export default function Analytics() {
-  // SHAP feature importance data
-  const shapeData = [
-    { feature: 'Annual Rainfall', importance: 0.285, color: '#06b6d4' },
-    { feature: 'Lagged Rainfall', importance: 0.218, color: '#0891b2' },
-    { feature: 'Peak Discharge', importance: 0.195, color: '#0e7490' },
-    { feature: 'Tree Loss %', importance: 0.156, color: '#164e63' },
-    { feature: 'Catchment Area', importance: 0.089, color: '#0c4a6e' },
-    { feature: 'Land Cover', importance: 0.057, color: '#082f36' },
-  ];
+  const [shapeData, setShapeData] = useState([]);
+  const [stateRiskData, setStateRiskData] = useState([]);
 
-  // Risk distribution by state
-  const stateRiskData = [
-    { state: 'Assam', risk: 8.2 },
-    { state: 'Bihar', risk: 7.5 },
-    { state: 'Odisha', risk: 7.1 },
-    { state: 'West Bengal', risk: 6.8 },
-    { state: 'Maharashtra', risk: 5.9 },
-    { state: 'Uttar Pradesh', risk: 5.2 },
-    { state: 'Madhya Pradesh', risk: 4.8 },
-    { state: 'Karnataka', risk: 4.1 },
-  ];
+  useEffect(() => {
+    // Check if the user ran a prediction recently
+    const savedPrediction = sessionStorage.getItem('lastPrediction');
+    
+    if (savedPrediction) {
+      const prediction = JSON.parse(savedPrediction);
+      const formattedShap = prediction.shap.map(s => ({
+        feature: s.factor,
+        importance: s.absContrib,
+        color: s.impact === 'positive' ? '#ef4444' : '#10b981'
+      }));
+      setShapeData(formattedShap);
+    } else {
+      // Fetch global SHAP summary
+      fetch('/api/shap_summary')
+        .then(res => res.json())
+        .then(data => {
+          if(data.shap_data) {
+            setShapeData(data.shap_data.slice(0, 6));
+          }
+        })
+        .catch(console.error);
+    }
+
+    // Fetch State risk data from our dataset
+    fetch('/api/state_risk')
+      .then(res => res.json())
+      .then(data => {
+        if(data.locations) {
+          const sorted = data.locations.sort((a, b) => b.riskScore - a.riskScore).slice(0, 8);
+          setStateRiskData(sorted.map(loc => ({
+            state: loc.state,
+            risk: loc.riskScore
+          })));
+        }
+      })
+      .catch(console.error);
+  }, []);
 
   // Temporal trend
   const temporalData = [

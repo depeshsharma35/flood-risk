@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import { Card } from '@/components/ui/card';
@@ -72,122 +72,44 @@ function CustomMarker({ location, onMarkerClick }) {
 
 export default function GeographicFloodMap({ onMarkerClick }) {
   const [selectedLocation, setSelectedLocation] = useState(null);
+  const [floodLocations, setFloodLocations] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Sample flood locations across India
-  const floodLocations = [
-    {
-      id: '1',
-      name: 'Barpeta District',
-      state: 'Assam',
-      district: 'Barpeta',
-      latitude: 26.3,
-      longitude: 90.2,
-      riskLevel: 'Critical',
-      riskScore: 8.5,
-      rainfall: 245.8,
-      discharge: 8500,
-      treeLoss: 12.5,
-      lastUpdated: '2024-04-03',
-    },
-    {
-      id: '2',
-      name: 'Muzaffarpur District',
-      state: 'Bihar',
-      district: 'Muzaffarpur',
-      latitude: 26.5,
-      longitude: 85.4,
-      riskLevel: 'High',
-      riskScore: 7.8,
-      rainfall: 198.3,
-      discharge: 6200,
-      treeLoss: 8.3,
-      lastUpdated: '2024-04-03',
-    },
-    {
-      id: '3',
-      name: 'Balasore District',
-      state: 'Odisha',
-      district: 'Balasore',
-      latitude: 21.5,
-      longitude: 87.3,
-      riskLevel: 'High',
-      riskScore: 7.2,
-      rainfall: 156.7,
-      discharge: 4800,
-      treeLoss: 6.1,
-      lastUpdated: '2024-04-03',
-    },
-    {
-      id: '4',
-      name: 'Jalpaiguri District',
-      state: 'West Bengal',
-      district: 'Jalpaiguri',
-      latitude: 26.5,
-      longitude: 88.7,
-      riskLevel: 'High',
-      riskScore: 7.0,
-      rainfall: 189.2,
-      discharge: 5600,
-      treeLoss: 9.8,
-      lastUpdated: '2024-04-03',
-    },
-    {
-      id: '5',
-      name: 'Ratnagiri District',
-      state: 'Maharashtra',
-      district: 'Ratnagiri',
-      latitude: 16.8,
-      longitude: 73.3,
-      riskLevel: 'Moderate',
-      riskScore: 5.9,
-      rainfall: 142.5,
-      discharge: 3900,
-      treeLoss: 5.2,
-      lastUpdated: '2024-04-03',
-    },
-    {
-      id: '6',
-      name: 'Lucknow District',
-      state: 'Uttar Pradesh',
-      district: 'Lucknow',
-      latitude: 26.8,
-      longitude: 80.9,
-      riskLevel: 'Low',
-      riskScore: 4.1,
-      rainfall: 98.4,
-      discharge: 2100,
-      treeLoss: 3.1,
-      lastUpdated: '2024-04-03',
-    },
-    {
-      id: '7',
-      name: 'Indore District',
-      state: 'Madhya Pradesh',
-      district: 'Indore',
-      latitude: 22.7,
-      longitude: 75.9,
-      riskLevel: 'Low',
-      riskScore: 3.8,
-      rainfall: 112.6,
-      discharge: 2800,
-      treeLoss: 2.9,
-      lastUpdated: '2024-04-03',
-    },
-    {
-      id: '8',
-      name: 'Mangalore District',
-      state: 'Karnataka',
-      district: 'Mangalore',
-      latitude: 12.9,
-      longitude: 74.9,
-      riskLevel: 'Moderate',
-      riskScore: 5.2,
-      rainfall: 125.3,
-      discharge: 3200,
-      treeLoss: 4.5,
-      lastUpdated: '2024-04-03',
-    },
-  ];
+  useEffect(() => {
+    const savedPrediction = sessionStorage.getItem('lastPrediction');
+    
+    if (savedPrediction) {
+      const pred = JSON.parse(savedPrediction);
+      setFloodLocations([{
+        id: 'predicted-location',
+        name: 'Simulated Scenario',
+        state: 'Custom Input',
+        district: 'Simulated User Input Region',
+        latitude: 23.1815, // center of map
+        longitude: 79.9864,
+        riskLevel: pred.riskLevel,
+        riskScore: pred.probability / 10, // scale 0-10
+        rainfall: parseFloat(pred.inputs?.Annual_Rainfall) || 0,
+        discharge: (parseFloat(pred.inputs?.Annual_Rainfall) || 0) * 10,
+        treeLoss: parseFloat(pred.inputs?.Annual_Percent_Tree_Loss) || 0,
+        lastUpdated: new Date().toISOString().split('T')[0]
+      }]);
+      setLoading(false);
+    } else {
+      fetch('/api/state_risk')
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.locations) {
+            setFloodLocations(data.locations);
+          }
+          setLoading(false);
+        })
+        .catch((err) => {
+          console.error('Failed to fetch map data:', err);
+          setLoading(false);
+        });
+    }
+  }, []);
 
   const getRiskColor = (level) => {
     switch (level) {

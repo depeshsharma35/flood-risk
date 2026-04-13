@@ -1,113 +1,44 @@
 import DashboardLayout from '@/components/DashboardLayout';
 import { Card } from '@/components/ui/card';
 import { ChevronDown } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function Dataset() {
   const [expandedRow, setExpandedRow] = useState(null);
+  const [floodData, setFloodData] = useState([]);
 
-  // Sample flood dataset
-  const floodData = [
-    {
-      id: 1,
-      state: 'Assam',
-      district: 'Barpeta',
-      date: '2023-08-15',
-      rainfall: 245.8,
-      discharge: 8500,
-      treeLoss: 12.5,
-      riskLevel: 'Critical',
-      description: 'Heavy monsoon rainfall with high river discharge',
-    },
-    {
-      id: 2,
-      state: 'Bihar',
-      district: 'Muzaffarpur',
-      date: '2023-08-12',
-      rainfall: 198.3,
-      discharge: 6200,
-      treeLoss: 8.3,
-      riskLevel: 'High',
-      description: 'Above-average rainfall in catchment area',
-    },
-    {
-      id: 3,
-      state: 'Odisha',
-      district: 'Balasore',
-      date: '2023-08-10',
-      rainfall: 156.7,
-      discharge: 4800,
-      treeLoss: 6.1,
-      riskLevel: 'High',
-      description: 'Cyclone-induced precipitation event',
-    },
-    {
-      id: 4,
-      state: 'West Bengal',
-      district: 'Jalpaiguri',
-      date: '2023-08-08',
-      rainfall: 189.2,
-      discharge: 5600,
-      treeLoss: 9.8,
-      riskLevel: 'High',
-      description: 'Monsoon peak with deforestation impact',
-    },
-    {
-      id: 5,
-      state: 'Maharashtra',
-      district: 'Ratnagiri',
-      date: '2023-08-05',
-      rainfall: 142.5,
-      discharge: 3900,
-      treeLoss: 5.2,
-      riskLevel: 'Moderate',
-      description: 'Seasonal rainfall within normal range',
-    },
-    {
-      id: 6,
-      state: 'Uttar Pradesh',
-      district: 'Lucknow',
-      date: '2023-08-03',
-      rainfall: 98.4,
-      discharge: 2100,
-      treeLoss: 3.1,
-      riskLevel: 'Low',
-      description: 'Below-average rainfall, low discharge',
-    },
-    {
-      id: 7,
-      state: 'Madhya Pradesh',
-      district: 'Indore',
-      date: '2023-08-01',
-      rainfall: 112.6,
-      discharge: 2800,
-      treeLoss: 2.9,
-      riskLevel: 'Low',
-      description: 'Stable weather conditions',
-    },
-    {
-      id: 8,
-      state: 'Karnataka',
-      district: 'Mangalore',
-      date: '2023-07-30',
-      rainfall: 125.3,
-      discharge: 3200,
-      treeLoss: 4.5,
-      riskLevel: 'Moderate',
-      description: 'Pre-monsoon rainfall activity',
-    },
-  ];
+  useEffect(() => {
+    fetch('/api/state_risk')
+      .then(res => res.json())
+      .then(data => {
+        if(data.locations) {
+          const records = data.locations.map((loc, idx) => ({
+            id: idx + 1,
+            state: loc.state,
+            district: loc.district,
+            date: loc.lastUpdated,
+            rainfall: loc.rainfall,
+            discharge: loc.discharge,
+            treeLoss: loc.treeLoss,
+            riskLevel: loc.riskLevel,
+            description: `Average recorded floods: ${loc.Total_Flood_Events}. Historical dataset aggregated across varying topographies.`
+          }));
+          setFloodData(records);
+        }
+      })
+      .catch(console.error);
+  }, []);
 
   const getRiskColor = (level) => {
     switch (level) {
       case 'Critical':
-        return 'risk-critical';
+        return 'bg-red-100 text-red-800';
       case 'High':
-        return 'risk-high';
+        return 'bg-orange-100 text-orange-800';
       case 'Moderate':
-        return 'risk-moderate';
+        return 'bg-amber-100 text-amber-800';
       case 'Low':
-        return 'risk-low';
+        return 'bg-green-100 text-green-800';
       default:
         return 'bg-gray-100';
     }
