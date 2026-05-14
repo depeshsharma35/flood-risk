@@ -80,7 +80,7 @@ export default function GeographicFloodMap({ onMarkerClick }) {
     
     if (savedPrediction) {
       const pred = JSON.parse(savedPrediction);
-      setFloodLocations([{
+      const simulatedLocation = {
         id: 'predicted-location',
         name: 'Simulated Scenario',
         state: 'Custom Input',
@@ -93,8 +93,24 @@ export default function GeographicFloodMap({ onMarkerClick }) {
         discharge: (parseFloat(pred.inputs?.Annual_Rainfall) || 0) * 10,
         treeLoss: parseFloat(pred.inputs?.Annual_Percent_Tree_Loss) || 0,
         lastUpdated: new Date().toISOString().split('T')[0]
-      }]);
-      setLoading(false);
+      };
+
+      fetch('/api/state_risk')
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.locations) {
+            const matchingLocations = data.locations.filter(loc => loc.riskLevel === pred.riskLevel);
+            setFloodLocations([simulatedLocation, ...matchingLocations]);
+          } else {
+            setFloodLocations([simulatedLocation]);
+          }
+          setLoading(false);
+        })
+        .catch((err) => {
+          console.error('Failed to fetch map data:', err);
+          setFloodLocations([simulatedLocation]);
+          setLoading(false);
+        });
     } else {
       fetch('/api/state_risk')
         .then((res) => res.json())
